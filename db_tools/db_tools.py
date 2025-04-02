@@ -1,9 +1,7 @@
 #V19.0 25/01/2024
-import os, json, time, re, sys
-import pandas as pd
-import sqlite3
+import os, json, time, re, sys, shutil, sqlite3
 from urllib.parse import urlparse
-import shutil
+import pandas as pd
 #Secondary requirements: pip install openpyxl
 ################################################################################
 class SQLite_Handler:
@@ -582,18 +580,18 @@ class SQLite_Backup(SQLite_Handler):
             raise ValueError("Invalid input type. Use either int or 'HH:MM:SS' string for time input.")
 
 ###File Structure
-#-Project root
-#---Data (raw data)
+#-project_root
+#---data (raw data)
 #
-#---Database (database location)
+#---database (database location)
 #------database.db
-#------Backup
+#------backup
 #---------checkpoint.json
 #---------database_backup.db
 #
-#---Tools (script location)
-#------_db_tools.py
-#
+#---src (actual project)
+#------main.py
+
 ###Test script
 if __name__ == '__main__':
     #Creates or connects to a db in ../database/
