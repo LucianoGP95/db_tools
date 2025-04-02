@@ -10,11 +10,18 @@ setup(
     author_email='lucianogpingindustrial@gmail.com',
     url='https://github.com/LucianoGP95/db_tools',  
     packages=find_packages(),  
-    install_requires=[],
+    install_requires=[
+        "numpy==2.2.4",
+        "pandas==2.2.3",
+        "python-dateutil==2.9.0.post0",
+        "pytz==2025.2",
+        "six==1.17.0",
+        "tzdata==2025.2"
+    ],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.12',
     ],
 )

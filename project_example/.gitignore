@@ -1,3 +1,4 @@
 # To test the project_example without poisoning the repo 
 *.*
 !.gitignore
+!src/test.py
