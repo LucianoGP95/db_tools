@@ -1,17 +1,16 @@
 from setuptools import setup, find_packages
 
-long_description = 'A longer description of your package'
+long_description = "A simple ORM made in SQLite to manage small databases."
 
 setup(
-    name='db_tools',  # Replace with your package name
-    version='1.0.0',  # Replace with your package version
-    description='ORM for SQLite',
+    name='db_tools',  
+    version='1.0.0', 
     long_description=long_description,
     author='Luciano Galán Plaza',
-    author_email='your@email.com',
-    url='https://github.com/yourusername/yourrepository',  # Replace with your GitHub repository URL
-    packages=find_packages(),  # Automatically find and include all packages
-    install_requires=[],  # List your package's dependencies here
+    author_email='lucianogpingindustrial@gmail.com',
+    url='https://github.com/LucianoGP95/db_tools',  
+    packages=find_packages(),  
+    install_requires=[],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
