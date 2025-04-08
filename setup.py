@@ -16,7 +16,8 @@ setup(
         "python-dateutil==2.9.0.post0",
         "pytz==2025.2",
         "six==1.17.0",
-        "tzdata==2025.2"
+        "tzdata==2025.2",
+        "openpyxl==3.1.5"
     ],
     classifiers=[
         'Development Status :: 1 - Planning',

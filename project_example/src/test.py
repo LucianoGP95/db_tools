@@ -3,15 +3,15 @@ from db_tools import SQLite_Data_Extractor, SQLite_Backup
 #Creates or connects to a db in ../database/
 dbh = SQLite_Data_Extractor("database.db")
 #Save a specific file inside ../data/
-dbh.store("data_2.xlsx")
+dbh.store("data.xlsx")
 #Info of all tables
 dbh.consult_tables()
 #Show info and the contents of specific tables
 dbh.examine_table(["test1", "test2"])
 #Rename a table
-dbh.rename_table("test1", "new_test")
+dbh.rename_table("test1", "renamed_table")
 #Get a table into a dataframe
-df = dbh.retrieve("new_test")
+df = dbh.retrieve("renamed_table")
 #Close the connection when done
 dbh.close_conn()
 #Reconnect to the actual db or a new one
