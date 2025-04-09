@@ -1,4 +1,4 @@
-#V19.0 25/01/2024
+#V20.0 09/04/2025
 import os, json, time, re, sys, shutil, sqlite3
 from urllib.parse import urlparse
 import pandas as pd
@@ -7,25 +7,27 @@ import pandas as pd
 class SQLite_Handler:
     '''SQLite custom handler'''
     def __init__(self, db_name: str, rel_path=None):
-        if rel_path == None:
+        if rel_path is None:
             self.db_path: str = os.path.join(os.path.abspath("../database/"), db_name)
-        else: #Optional relative path definition
+        else:  # Optional relative path definition
             try:
                 self.db_path: str = os.path.join(os.path.abspath(rel_path), db_name)
             except OSError as e:
                 print(f"Error with custom path creation: {e}")
-        self.df: pd.DataFrame = None
+        
         self.conn = None
         self.cursor = None
-        self.conn = sqlite3.connect(self.db_path) #Preventive connection/creation to the database
-        self.cursor = self.conn.cursor()
-        if not os.path.exists(self.db_path): 
+        if not os.path.exists(self.db_path):  # Check if the database file exists before connecting
             print(f"Database *{db_name}* created in: {self.db_path}")
-        else: 
+        else:
             print(f"Database *{db_name}* found in: {self.db_path}")
+        
+        self.conn = sqlite3.connect(self.db_path)  # Preventive connection/creation to the database
+        self.cursor = self.conn.cursor()
+        print(f"Database *{db_name}* connected.")
 
     def rename_table(self, old_name: str, new_name: str, verbose=True):
-        old_name = re.sub(r'\W', '_', old_name) #To avoid illegal symbols
+        old_name = re.sub(r'\W', '_', old_name)  # To avoid illegal symbols
         new_name = re.sub(r'\W', '_', new_name)
         try:
             self.cursor.execute(f"ALTER TABLE {old_name} RENAME TO {new_name};")
@@ -45,7 +47,7 @@ class SQLite_Handler:
             quoted_new_name = f'"{new_name}"'
             self.cursor.execute(f"ALTER TABLE {quoted_table_name} RENAME COLUMN {quoted_old_name} TO {quoted_new_name};")
             self.conn.commit()
-            print(f"Table *{table_name}* renamed from *{old_name}* to *{new_name}*") if verbose == True else None
+            print(f"Table *{table_name}* renamed from *{old_name}* to *{new_name}*") if verbose else None
         except Exception as e:
             print(f"Error renaming column: {e}")
 
@@ -74,7 +76,7 @@ class SQLite_Handler:
                 for row in row_name:
                     self.cursor.execute(f"PRAGMA table_info({table_name})")
                     columns_info = self.cursor.fetchall()
-                    column_name= columns_info[0][1]
+                    column_name = columns_info[0][1]
                     self.cursor.execute(f"DELETE FROM {table_name} WHERE {column_name} = '{row}'")
                     self.conn.commit()
                     print(f"{row} dropped successfully.")
@@ -83,21 +85,22 @@ class SQLite_Handler:
             else:
                 print("Operation canceled.")
         except Exception as e:
-            raise Exception(f"Error while deleting table: {str(e)}")
+            raise Exception(f"Error while deleting row(s): {str(e)}")
 
     def consult_tables(self, order=None, filter=None, verbose=True):
         '''Shows all the tables in the database. Allows for filtering.'''
-        show_order="name" if order == None else order #Default order
+        show_order = "name" if order is None else order  # Default order
         cursor = self.conn.cursor()
         cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' ORDER BY {show_order}")
-        if filter:  #First, filters by the full name
+        if filter:  # First, filters by the full name
             tables = [table[0] for table in cursor.fetchall() if filter.lower() in table[0].lower()]
-            if not tables: #If not successful, filters by initial string
+            if not tables:  # If not successful, filters by initial string
                 tables = [table[0] for table in cursor.fetchall() if table[0].lower().startswith(filter.lower())]
         else:
             tables = [table[0] for table in cursor.fetchall()]
+        
         _, db_name = os.path.split(self.db_path)
-        if verbose == True:
+        if verbose:
             print(f"*{db_name}* actual contents:")
             for table in tables:
                 print(f"    {table}")
@@ -115,8 +118,8 @@ class SQLite_Handler:
                 cursor.execute(f"PRAGMA table_info({table})")
                 columns = cursor.fetchall()
                 columns_number = len(columns)
-                column_names = []; rows = [] #Preallocation
-                for column in columns: #Get column names
+                column_names = []  # Preallocation
+                for column in columns:  # Get column names
                     column_name = column[1]
                     column_names.append(column_name)
                 column_names = tuple(column_names)
@@ -124,15 +127,15 @@ class SQLite_Handler:
                 cursor.execute(f"SELECT * FROM {table};")
                 rows = cursor.fetchall()
                 print(f"Columns name: {column_names}")
-                for row in rows: #Gets values row by row
+                for row in rows:  # Gets values row by row
                     print(f"    {row}")
         except Exception as e:
-            raise Exception(f"Error while examining tables: {(e)}")
+            raise Exception(f"Error while examining tables: {str(e)}")
 
     def close_conn(self, verbose=True):
         '''Closes the database connection when done'''
         try:
-            self.conn.close()  
+            self.conn.close()
             print(f"Closed connection to: {self.db_path}") if verbose else None
         except Exception as e:
             print(f"Error clearing the database: {str(e)}")
@@ -140,10 +143,10 @@ class SQLite_Handler:
     def reconnect(self, database, rel_path=None, verbose=True):
         '''Connects to either the same database or another database.'''
         old_db_path = self.db_path
-        if rel_path is not None:  #Check if a new relative path was provided
+        if rel_path is not None:  # Check if a new relative path was provided
             self.db_path = os.path.join(os.path.abspath(rel_path), database)
         try:
-            self.conn.close()  #Ensure the database is closed
+            self.conn.close()  # Ensure the database is closed
         except Exception:
             pass
         try:
@@ -152,20 +155,20 @@ class SQLite_Handler:
             print(f"Connected to {self.db_path}") if verbose else None
         except Exception as e:
             print(f"Error trying to connect: {e}")
-            self.db_path = old_db_path #Returns to the last valid path
+            self.db_path = old_db_path  # Returns to the last valid path
 
     def clear_database(self, override=False):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';") #Get a list of all tables in the database
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")  # Get a list of all tables in the database
             tables = cursor.fetchall()
             _, file = os.path.split(self.db_path)
-            if override == False: #Override confirmation to dispatch multiple databases (WARNING, abstract a confirmation check to a superior level) 
+            if not override:  # Override confirmation to dispatch multiple databases (WARNING, abstract a confirmation check to a superior level)
                 confirmation = input(f"Warning: This action will clear all data from the database {file}.\nDo you want to continue? (y/n): ").strip().lower()
             else:
                 confirmation = "y"
             if confirmation == 'y':
-                for table in tables: #Loop through the tables and delete them
+                for table in tables:  # Loop through the tables and delete them
                     table_name = table[0]
                     cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
                 self.conn.commit()
@@ -174,9 +177,10 @@ class SQLite_Handler:
                 print("Operation canceled.")
         except Exception as e:
             print(f"Error clearing the database: {str(e)}")
+    
     '''internal methods'''
     def _input_handler(self, input):
-        '''Modfifies the input parameter to handle several types and always return and iterable'''
+        '''Modifies the input parameter to handle several types and always return an iterable'''
         if isinstance(input, str):
             input = [input]
             return input
