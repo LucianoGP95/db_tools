@@ -395,7 +395,7 @@ class SQLite_Data_Extractor(SQLite_Handler):
             case _:
                 print(f"Unsupported file format: {source}, skipping file.")
 
-    def _datasheet_excel(self, i, source):
+    def _datasheet_excel(self, i):
         '''Specific method for sending .xlsx files with all their sheets as tables in the db'''
         try:
             _, source_name = os.path.split(self.source_name)
@@ -417,7 +417,7 @@ class SQLite_Data_Extractor(SQLite_Handler):
         except Exception as e:
             raise Exception(f"Error connecting to database: {str(e)}")
 
-    def _datasheet_csv(self, i, source):
+    def _datasheet_csv(self, i):
         '''Specific method for sending .csv files as tables in the db'''
         try:
             _, source_name = os.path.split(self.source_name)
@@ -430,7 +430,7 @@ class SQLite_Data_Extractor(SQLite_Handler):
         except Exception as e:
             raise Exception(f"Error connecting to database: {str(e)}")
 
-    def _datasheet_json(self, i, source):
+    def _datasheet_json(self, i):
         '''Specific method for sending .json files as tables in the db'''
         try:
             _, source_name = os.path.split(self.source_name)
