@@ -202,12 +202,8 @@ class SQLite_Data_Extractor(SQLite_Handler):
         '''Generates table(s) of the given name using data from different sources'''
         self.source_name = source
         self._inputhandler() #Handles the source input format
-        for i, source in enumerate(self.source_path):
-            self._filetypehandler(source) #Handles the filetype
-            if self.extension == "xlsx":
-                self._datasheet_excel(i, source)
-            if self.extension == "csv":
-                self._datasheet_csv(i, source)
+        # Proccess data based of extension:
+        self._input_type_workflow()
         try: #Incase there is a problem with the parent method
             self.consult_tables()
         except Exception as e:
@@ -236,15 +232,8 @@ class SQLite_Data_Extractor(SQLite_Handler):
                 print(f"Error creating or accessing default directory '{default_directory}': {e}")
                 print("    The operation has been canceled.")
                 sys.exit(1)
-        for i, source in enumerate(self.source_path):
-            self.source_name = source
-            self._filetypehandler(source)  #Handles the filetype
-            if self.extension == "xlsx":
-                self._datasheet_excel(i, source)
-            if self.extension == "csv":
-                self._datasheet_csv(i, source)
-            if self.extension == ".json":
-                self._datasheet_json(i, source)
+        # Proccess data based of extension:
+        self._input_type_workflow()
         try:  
             self.consult_tables()
         except Exception as e: #In case there is a problem with the parent method
@@ -347,23 +336,62 @@ class SQLite_Data_Extractor(SQLite_Handler):
             else:
                 raise Exception(f"Error importing data: Data mas be specified in str, list or tuple format") 
 
+    def _input_type_workflow(self):        
+        for index, source in enumerate(self.source_path):
+            self.source_name = source
+            self._filetypehandler(source)  #Handles the filetype
+            if self.extension == "xlsx":
+                self._datasheet_excel(index)
+            if self.extension == "csv":
+                self._datasheet_csv(index)
+            if self.extension == "json":
+                self._datasheet_json(index)
+
     def _filetypehandler(self, source):
         '''Handles all the supported filetypes. Currently supported:
         - .csv
         - .xlsx (Excel)
-        - An url pointing to a file of the above'''
-        self.extension = source.split(".")[-1] #Gets the extension of the file
+        - .json
+        - An URL pointing to a file of the above'''
+        
+        self.extension = source.split(".")[-1].lower()  # Get file extension, case-insensitive
+
         match self.extension:
             case "xlsx":
                 try:
-                    self.df = pd.read_excel(source, sheet_name=None)
+                    self.df = pd.read_excel(source, sheet_name=None)  # Dictionary of DataFrames
                 except Exception as e:
-                    raise Exception(f"Error importing data into pandas: {str(e)}")
+                    raise Exception(f"Error importing Excel file into pandas: {str(e)}")
+
             case "csv":
                 try:
                     self.df = pd.read_csv(source, header=None, sep=self.sep)
                 except Exception as e:
-                    raise Exception(f"Error importing data into pandas: {str(e)}")
+                    raise Exception(f"Error importing CSV into pandas: {str(e)}")
+
+            case "json":
+                try:
+                    import json
+                    with open(source, "r", encoding="utf-8") as f:
+                        raw = json.load(f)
+                    
+                    # Try to normalize nested structures if needed
+                    if isinstance(raw, list):
+                        self.df = pd.json_normalize(raw)
+                    elif isinstance(raw, dict):
+                        # Try to find a list inside the dict (e.g., {"data": [...]})
+                        for key, val in raw.items():
+                            if isinstance(val, list):
+                                self.df = pd.json_normalize(val)
+                                break
+                        else:
+                            self.df = pd.json_normalize(raw)
+                    else:
+                        raise Exception("JSON structure not supported.")
+
+                except Exception as e:
+                    raise Exception(f"Error importing JSON into pandas: {str(e)}")
+
             case _:
                 print(f"Unsupported file format: {source}, skipping file.")
 
