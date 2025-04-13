@@ -243,6 +243,8 @@ class SQLite_Data_Extractor(SQLite_Handler):
                 self._datasheet_excel(i, source)
             if self.extension == "csv":
                 self._datasheet_csv(i, source)
+            if self.extension == ".json":
+                self._datasheet_json(i, source)
         try:  
             self.consult_tables()
         except Exception as e: #In case there is a problem with the parent method
@@ -376,9 +378,9 @@ class SQLite_Data_Extractor(SQLite_Handler):
             for sheet_name, sheet in self.df.items():
                 j += 1
                 if len(self.df.items()) == 1: #Name for single sheet excels
-                    table_name = re.sub(r'\W', '_', source_name) #Replace non-alphanumeric characters with underscores in table_name
+                    table_name = self._sanitize_name(source_name, i)
                 else:
-                    table_name = re.sub(r'\W', '_', sheet_name) #Replace non-alphanumeric characters with underscores in table_name
+                    table_name = self._sanitize_name(sheet_name, i)
                 if not table_name[0].isalpha() and table_name[0] != '_': #Ensure the table_name starts with a letter or underscore
                     table_name = f"xlsx_table{j}"
                     print(f"Invalid table name for sheet: *{sheet_name}*. Adding it as *{table_name}*")
@@ -392,16 +394,38 @@ class SQLite_Data_Extractor(SQLite_Handler):
         try:
             _, source_name = os.path.split(self.source_name)
             source_name, _ = os.path.splitext(source_name)
-            #table_name = source.split(".")[-2].split("/")[-1]
-            table_name = re.sub(r'\W', '_', source_name) #Replace non-alphanumeric characters with underscores in table_name
-            if not table_name[0].isalpha() and table_name[0] != '_': #Ensure the table_name starts with a letter or underscore
-                table_name = f"csv_table{i+1}"
-                print(f"Invalid table name: *{table_name}*. Adding it as *csv_table{i+1}*")
+            # Clean up table name
+            table_name = self._sanitize_name(source_name, i)
             print(f'Data from *{source_name}* has been imported to {self.db_path}.')
             print(f"    {table_name}")
             self.df.to_sql(table_name, self.conn, if_exists='replace', index=False)
         except Exception as e:
             raise Exception(f"Error connecting to database: {str(e)}")
+
+    def _datasheet_json(self, i, source):
+        '''Specific method for sending .json files as tables in the db'''
+        try:
+            _, source_name = os.path.split(self.source_name)
+            source_name, _ = os.path.splitext(source_name)
+            
+            # Clean up table name
+            table_name = self._sanitize_name(source_name, i)
+
+            # Show feedback
+            print(f'Data from *{source_name}* has been imported to {self.db_path}.')
+            print(f"    {table_name}")
+            
+            # Insert into DB
+            self.df.to_sql(table_name, self.conn, if_exists='replace', index=False)
+        except Exception as e:
+            raise Exception(f"Error connecting to database: {str(e)}")
+
+    def _sanitize_name(self, source_name: str, i) -> str:
+        table_name = re.sub(r'\W', '_', source_name)
+        if not table_name[0].isalpha() and table_name[0] != '_':
+            table_name = f"json_table{i+1}"
+            print(f"Invalid table name: *{table_name}*. Adding it as *table{i+1}*")
+        return table_name
 
     def _is_url(self, string):
         '''Determines whether the given argument is an url or not'''
