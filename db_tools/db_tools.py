@@ -390,26 +390,26 @@ class SQLite_Data_Extractor(SQLite_Handler):
                     import json
                     with open(self.source_name, "r", encoding="utf-8") as f:
                         raw = json.load(f)
-                    
-                    # Try to normalize nested structures if needed
-                    if isinstance(raw, list):
-                        self.df = pd.json_normalize(raw)
-                    elif isinstance(raw, dict):
-                        # Try to find a list inside the dict (e.g., {"data": [...]})
-                        for key, val in raw.items():
-                            if isinstance(val, list):
-                                self.df = pd.json_normalize(val)
-                                break
+
+                    df = pd.json_normalize(raw)
+
+                    def clean_value(val):
+                        if isinstance(val, list):
+                            return ", ".join(str(v) for v in val)
+                        elif isinstance(val, dict):
+                            return json.dumps(val, ensure_ascii=False)
                         else:
-                            self.df = pd.json_normalize(raw)
-                    else:
-                        raise Exception("JSON structure not supported.")
+                            return val
+
+                    df = df.applymap(clean_value)
+
+                    if df.empty or len(df.columns) == 0:
+                        raise Exception("El DataFrame resultante está vacío o no tiene columnas.")
+
+                    self.df = df
 
                 except Exception as e:
-                    raise Exception(f"Error importing JSON into pandas: {str(e)}")
-
-            case _:
-                print(f"Unsupported file format: {source_path}, skipping file.")
+                    raise Exception(f"Error importando JSON como DataFrame: {str(e)}")
 
     def _datasheet_excel(self, i):
         '''Specific method for sending .xlsx files with all their sheets as tables in the db'''
