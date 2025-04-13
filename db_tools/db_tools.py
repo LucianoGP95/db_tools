@@ -1,4 +1,4 @@
-#V20.0 09/04/2025
+#V21.0 13/04/2025
 import os, json, time, re, sys, shutil, sqlite3
 from urllib.parse import urlparse
 import pandas as pd
@@ -7,6 +7,7 @@ import pandas as pd
 class SQLite_Handler:
     '''SQLite custom handler'''
     def __init__(self, db_name: str, rel_path=None):
+        os.chdir(os.path.dirname(os.path.abspath(__file__))) # Sets the cwd
         if rel_path is None:
             self.db_path: str = os.path.join(os.path.abspath("../database/"), db_name)
         else:  # Optional relative path definition
@@ -140,22 +141,29 @@ class SQLite_Handler:
         except Exception as e:
             print(f"Error clearing the database: {str(e)}")
 
-    def reconnect(self, database, rel_path=None, verbose=True):
-        '''Connects to either the same database or another database.'''
+    def reconnect(self, database=None, rel_path=None, verbose=True):
+        '''Reconnects to the current or a new database.'''
         old_db_path = self.db_path
-        if rel_path is not None:  # Check if a new relative path was provided
-            self.db_path = os.path.join(os.path.abspath(rel_path), database)
+
+        if database is not None:
+            # Update db_path only if a new database name is provided
+            if rel_path is not None:
+                self.db_path = os.path.join(os.path.abspath(rel_path), database)
+            else:
+                self.db_path = os.path.join(os.path.abspath("../database/"), database)
+
         try:
-            self.conn.close()  # Ensure the database is closed
+            self.conn.close()  # Ensure the previous connection is closed
         except Exception:
             pass
+
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.cursor = self.conn.cursor()
             print(f"Connected to {self.db_path}") if verbose else None
         except Exception as e:
             print(f"Error trying to connect: {e}")
-            self.db_path = old_db_path  # Returns to the last valid path
+            self.db_path = old_db_path  # Restore the last valid path
 
     def clear_database(self, override=False):
         try:
@@ -167,7 +175,7 @@ class SQLite_Handler:
                 confirmation = input(f"Warning: This action will clear all data from the database {file}.\nDo you want to continue? (y/n): ").strip().lower()
             else:
                 confirmation = "y"
-            if confirmation == 'y':
+            if confirmation == "y":
                 for table in tables:  # Loop through the tables and delete them
                     table_name = table[0]
                     cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
@@ -192,9 +200,17 @@ class SQLite_Handler:
 class SQLite_Data_Extractor(SQLite_Handler):
     '''Extracts structured data from different sources and turns it into a table in a database for quick deployment. Creates a db 
     from raw data or adds tables to it from raw data'''
-    def __init__(self, db_name, rel_path=None):
-        super().__init__(db_name, rel_path)  #Calls the parent class constructor
+    def __init__(self, db_name, db_rel_path=None, source_rel_folderpath=None):
+        super().__init__(db_name, db_rel_path)  #Calls the parent class constructor
         self.source_name = None
+        if source_rel_folderpath is None:
+            self.source_folderpath: str = os.path.abspath("../data/")
+        else:  # Optional relative path definition
+            try:
+                self.source_folderpath: str = os.path.abspath(source_rel_folderpath)
+            except OSError as e:
+                print(f"Error with custom path creation: {e}")
+        print(f"Data source folder: {os.path.abspath(source_rel_folderpath)}")
         self.add_index = False
         self.sep = ","
 
@@ -324,22 +340,22 @@ class SQLite_Data_Extractor(SQLite_Handler):
             - A string indicating a single file in ../data/
             - An url with a supported filetype'''
         self.flag = self._is_url(self.source_name) #Determines if the given source is an url
-        if self.flag == True: 
+        if self.flag: 
             self.source_path = [self.source_name] #Converts the string to list to allow iteration with 1 element.
             print("url detected")
         else:
             if isinstance(self.source_name, str): 
-                self.source_path = "../data/" + self.source_name
+                self.source_path = os.path.join(self.source_folderpath, self.source_name)
                 self.source_path = [self.source_path] #Converts the string to list to allow iteration with 1 element.
             elif isinstance(self.source_name, (list, tuple)):
-                self.source_path = ["../data/" + name for name in self.source_name]
+                self.source_path = [self.source_rel_path + name for name in self.source_name]
             else:
                 raise Exception(f"Error importing data: Data mas be specified in str, list or tuple format") 
 
     def _input_type_workflow(self):        
-        for index, source in enumerate(self.source_path):
-            self.source_name = source
-            self._filetypehandler(source)  #Handles the filetype
+        for index, source_path in enumerate(self.source_path):
+            source_path = os.path.abspath(source_path)
+            self._filetypehandler(source_path)  #Handles the filetype
             if self.extension == "xlsx":
                 self._datasheet_excel(index)
             if self.extension == "csv":
@@ -347,32 +363,32 @@ class SQLite_Data_Extractor(SQLite_Handler):
             if self.extension == "json":
                 self._datasheet_json(index)
 
-    def _filetypehandler(self, source):
+    def _filetypehandler(self, source_path):
         '''Handles all the supported filetypes. Currently supported:
         - .csv
         - .xlsx (Excel)
         - .json
         - An URL pointing to a file of the above'''
         
-        self.extension = source.split(".")[-1].lower()  # Get file extension, case-insensitive
+        self.extension = source_path.split(".")[-1].lower()  # Get file extension, case-insensitive
 
         match self.extension:
             case "xlsx":
                 try:
-                    self.df = pd.read_excel(source, sheet_name=None)  # Dictionary of DataFrames
+                    self.df = pd.read_excel(source_path, sheet_name=None)  # Dictionary of DataFrames
                 except Exception as e:
                     raise Exception(f"Error importing Excel file into pandas: {str(e)}")
 
             case "csv":
                 try:
-                    self.df = pd.read_csv(source, header=None, sep=self.sep)
+                    self.df = pd.read_csv(self.source_name, header=None, sep=self.sep)
                 except Exception as e:
                     raise Exception(f"Error importing CSV into pandas: {str(e)}")
 
             case "json":
                 try:
                     import json
-                    with open(source, "r", encoding="utf-8") as f:
+                    with open(self.source_name, "r", encoding="utf-8") as f:
                         raw = json.load(f)
                     
                     # Try to normalize nested structures if needed
@@ -393,7 +409,7 @@ class SQLite_Data_Extractor(SQLite_Handler):
                     raise Exception(f"Error importing JSON into pandas: {str(e)}")
 
             case _:
-                print(f"Unsupported file format: {source}, skipping file.")
+                print(f"Unsupported file format: {source_path}, skipping file.")
 
     def _datasheet_excel(self, i):
         '''Specific method for sending .xlsx files with all their sheets as tables in the db'''
