@@ -185,8 +185,13 @@ class SQLite_Handler:
                 print("Operation canceled.")
         except Exception as e:
             print(f"Error clearing the database: {str(e)}")
-    
-    '''internal methods'''
+
+    def pragma_conf(self, foreign_keys=False):
+        '''Access PRAGMA configrations of the database'''
+        foreign_keys = "ON" if foreign_keys == True else "OFF"
+        self.cursor.execute(f"PRAGMA foreign_keys = {foreign_keys}")
+
+    """Internal methods"""
     def _input_handler(self, input):
         '''Modifies the input parameter to handle several types and always return an iterable'''
         if isinstance(input, str):
@@ -200,8 +205,8 @@ class SQLite_Handler:
 class SQLite_Data_Extractor(SQLite_Handler):
     '''Extracts structured data from different sources and turns it into a table in a database for quick deployment. Creates a db 
     from raw data or adds tables to it from raw data'''
-    def __init__(self, db_name, db_rel_path=None, source_rel_folderpath=None):
-        super().__init__(db_name, db_rel_path)  #Calls the parent class constructor
+    def __init__(self, db_name, db_rel_filepath=None, source_rel_folderpath=None):
+        super().__init__(db_name, db_rel_filepath)  #Calls the parent class constructor
         self.source_name = None
         if source_rel_folderpath is None:
             self.source_folderpath: str = os.path.abspath("../data/")
@@ -217,10 +222,10 @@ class SQLite_Data_Extractor(SQLite_Handler):
     def store(self, source):
         '''Generates table(s) of the given name using data from different sources'''
         self.source_name = source
-        self._inputhandler() #Handles the source input format
+        self._inputhandler() # Handles the source input format
         # Proccess data based of extension:
         self._input_type_workflow()
-        try: #Incase there is a problem with the parent method
+        try: # Incase there is a problem with the parent method
             self.consult_tables()
         except Exception as e:
             pass
