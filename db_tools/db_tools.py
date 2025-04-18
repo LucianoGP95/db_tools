@@ -2,6 +2,7 @@
 import os, json, time, re, sys, shutil, sqlite3
 from urllib.parse import urlparse
 import pandas as pd
+from query_builder import QueryBuilder
 #Secondary requirements: pip install openpyxl
 ################################################################################
 class SQLite_Handler:
@@ -66,6 +67,43 @@ class SQLite_Handler:
                 print("Operation canceled.")
         except Exception as e:
             raise Exception(f"Error while deleting table: {str(e)}")
+
+    def migrate_table(self, table_name: str, verbose: bool=False, foreign_key: str=None):
+        '''Creates a copy of a table and deletes it, allowing for foreign keys set'''
+        try:
+            # Create temporal name
+            temp_name = f"{table_name}_old"
+            # Rename source table to temporal name
+            self.cursor.execute(f"ALTER TABLE {table_name} RENAME TO {temp_name};")
+            # Get source table info
+            self.cursor.execute(f"PRAGMA table_info({temp_name});")
+            # Get source columns
+            old_columns = [row[1] for row in self.cursor.fetchall()]
+            # Get query with old columns
+            data = {
+                "table_name": table_name,
+                "columns": old_columns,
+                "foreign_key": foreign_key
+            }
+            query_builder = QueryBuilder(data)
+            query = query_builder.create_table()
+            # Create new table
+            self.cursor.execute(query)
+            # Get target table info
+            self.cursor.execute(f"PRAGMA table_info({table_name});")
+            # Get new columns info
+            new_columns = [row[1] for row in self.cursor.fetchall()]
+            # Prepare columns
+            common_columns = list(set(old_columns) & set(new_columns))
+            columns_str = ", ".join(common_columns)
+            # Insert columns
+            self.cursor.execute(f"INSERT INTO {table_name} ({columns_str}) SELECT {columns_str} FROM {temp_name};")
+            # Remove old table
+            self.cursor.execute(f"DROP TABLE {temp_name};")
+            self.conn.commit()
+            print(f"{table_name} migrated successfully.") if verbose == True else None
+        except Exception as e:
+            raise Exception(f"Error while migrating table: {str(e)}")
 
     def delete_row(self, row_name: str, table_name: str):
         '''Drops row(s) from the desired table'''
