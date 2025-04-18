@@ -4,6 +4,7 @@ class QueryBuilder():
     def __init__(self, data: dict):
         self.table_name = data.get("table_name")
         self.columns = data.get("columns")
+        self.columns_types = data.get("column_types")
         self.foreign_key = data.get("foreign_key")
 
     def create_table(self):
@@ -12,8 +13,10 @@ class QueryBuilder():
             return
         if not self.check_requirements("columns", self.columns, list):
             return
-
-        column_defs = [f"{col} TEXT" for col in self.columns]  # Default type TEXT
+        if not self.columns_types:
+            column_defs = [f"{col} TEXT" for col in self.columns]  # Defaults to type TEXT
+        else:
+            column_defs = [f"{col} {col_type}" for col, col_type in zip(self.columns, self.columns_types)] # Dynamic type
 
         if self.foreign_key:
             column_defs.append(
@@ -21,6 +24,7 @@ class QueryBuilder():
             )
 
         columns_str = ", ".join(column_defs)
+        print(f"CREATE TABLE {self.table_name} ({columns_str});")
         return f"CREATE TABLE {self.table_name} ({columns_str});"
 
     def check_requirements(self, name: str, value, expected_type=None):
@@ -33,29 +37,29 @@ class QueryBuilder():
             return False
         return True
 
-if __name__ == "main":
-    conn = sqlite3.connect(":memory:")
-    cursor = conn.cursor()
+conn = sqlite3.connect(":memory:")
+cursor = conn.cursor()
 
-    # Define test data
-    data = {
-        "table_name": "test_table",
-        "columns": ["id", "name", "email"],
-        "foreign_key": None  # or set to 'id' to test FK
-    }
+# Define test data
+data = {
+    "table_name": "test_table",
+    "columns": ["id", "name", "email"],
+    "foreign_key": "name",
+    "column_types": ["INTEGER PRIMARY KEY", "TEXT", "TEXT"] # or set to 'id' to test FK
+}
 
-    # Build and execute query
-    qb = QueryBuilder(data)
-    create_query = qb.create_table()
+# Build and execute query
+qb = QueryBuilder(data)
+create_query = qb.create_table()
 
-    if create_query:
-        print("Executing SQL:", create_query)
-        cursor.execute(create_query)
-        # Show table schema
-        cursor.execute("PRAGMA table_info(test_table);")
-        rows = cursor.fetchall()
-        print("\nTable schema:")
-        for row in rows:
-            print(row)
+if create_query:
+    print("Executing SQL:", create_query)
+    cursor.execute(create_query)
+    # Show table schema
+    cursor.execute("PRAGMA table_info(test_table);")
+    rows = cursor.fetchall()
+    print("\nTable schema:")
+    for row in rows:
+        print(row)
 
-    conn.close()
+conn.close()

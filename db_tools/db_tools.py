@@ -8,23 +8,35 @@ from query_builder import QueryBuilder
 class SQLite_Handler:
     '''SQLite custom handler'''
     def __init__(self, db_name: str, rel_path=None):
-        os.chdir(os.path.dirname(os.path.abspath(__file__))) # Sets the cwd
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Memory database shortcut
+        if db_name == ":memory:":
+            self.db_path = ":memory:"
+            self.conn = sqlite3.connect(self.db_path)
+            self.cursor = self.conn.cursor()
+            print("Test database created in RAM")
+            return
+
+        # Set the path
         if rel_path is None:
-            self.db_path: str = os.path.join(os.path.abspath("../database/"), db_name)
-        else:  # Optional relative path definition
+            db_dir = os.path.abspath(os.path.join(base_dir, "../database/"))
+        else:
             try:
-                self.db_path: str = os.path.join(os.path.abspath(rel_path), db_name)
-            except OSError as e:
-                print(f"Error with custom path creation: {e}")
-        
-        self.conn = None
-        self.cursor = None
-        if not os.path.exists(self.db_path):  # Check if the database file exists before connecting
+                db_dir = os.path.abspath(os.path.join(base_dir, rel_path))
+            except Exception as e:
+                raise OSError(f"Error resolving path: {e}")
+
+        os.makedirs(db_dir, exist_ok=True)  # Ensure the directory exists
+        self.db_path = os.path.join(db_dir, db_name)
+
+        # Connect and log
+        if not os.path.exists(self.db_path):
             print(f"Database *{db_name}* created in: {self.db_path}")
         else:
             print(f"Database *{db_name}* found in: {self.db_path}")
-        
-        self.conn = sqlite3.connect(self.db_path)  # Preventive connection/creation to the database
+
+        self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
         print(f"Database *{db_name}* connected.")
 
@@ -224,10 +236,18 @@ class SQLite_Handler:
         except Exception as e:
             print(f"Error clearing the database: {str(e)}")
 
-    def pragma_conf(self, foreign_keys=False):
+    def pragma_conf(self, foreign_keys: bool=False):
         '''Access PRAGMA configrations of the database'''
         foreign_keys = "ON" if foreign_keys == True else "OFF"
         self.cursor.execute(f"PRAGMA foreign_keys = {foreign_keys}")
+
+    def get_table_info(self, table_name: str):
+        '''Uses PRAGMA to show table info'''
+        self.cursor.execute(f"PRAGMA table_info({table_name});")
+        rows = self.cursor.fetchall()
+        print("\nTable schema:")
+        for row in rows:
+            print(row)
 
     """Internal methods"""
     def _input_handler(self, input):
@@ -235,10 +255,10 @@ class SQLite_Handler:
         if isinstance(input, str):
             input = [input]
             return input
-        elif isinstance(input, (list, tuple)):
+        elif isinstance(input, (list, tuple, set)):
             return input
         else:
-            raise Exception(f"Unsupported input format: Try str, list, tuple.")
+            raise Exception(f"Unsupported input format: Try str, list, tuple, set.")
 ################################################################################
 class SQLite_Data_Extractor(SQLite_Handler):
     '''Extracts structured data from different sources and turns it into a table in a database for quick deployment. Creates a db 
