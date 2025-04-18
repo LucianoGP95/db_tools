@@ -444,14 +444,14 @@ class SQLite_Data_Extractor(SQLite_Handler):
 
             case "csv":
                 try:
-                    self.df = pd.read_csv(self.source_name, header=None, sep=self.sep)
+                    self.df = pd.read_csv(source_path, header=0, sep=self.sep)
                 except Exception as e:
                     raise Exception(f"Error importing CSV into pandas: {str(e)}")
 
             case "json":
                 try:
                     import json
-                    with open(self.source_name, "r", encoding="utf-8") as f:
+                    with open(source_path, "r", encoding="utf-8") as f:
                         raw = json.load(f)
 
                     df = pd.json_normalize(raw)

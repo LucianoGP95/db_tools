@@ -5,14 +5,15 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))) # Sets the cwd
 
 
 #Creates or connects to a db in ../database/
-dbh = SQLite_Data_Extractor(":memory:")
+dbh = SQLite_Data_Extractor(":memory:", source_rel_folderpath="../raw_data")
 #Save a specific file inside ../data/
-dbh.store("../raw_data/data.csv")
+dbh.store("data.csv")
 #Info of all tables
 dbh.consult_tables()
-""" #Show info and the contents of specific tables
-dbh.examine_table(["test1", "test2"])
-#Rename a table
+#Show info and the contents of specific tables
+dbh.examine_table(["data"])
+dbh.migrate_table("data")
+"""#Rename a table
 dbh.rename_table("test1", "renamed_table")
 #Get a table into a dataframe
 df = dbh.retrieve("renamed_table")
@@ -40,4 +41,4 @@ dbh.delete_row('a', "new_test")
 #Delete a single table
 dbh.delete_table("new_test")
 #Clear the database
-dbh.clear_database() """
+dbh.clear_database()"""
