@@ -80,7 +80,7 @@ class SQLite_Handler:
         except Exception as e:
             raise Exception(f"Error while deleting table: {str(e)}")
 
-    def migrate_table(self, table_name: str, verbose: bool=False, foreign_key: str=None):
+    def migrate_table(self, table_name: str, verbose: bool=True, foreign_key: str=None):
         '''Creates a copy of a table and deletes it, allowing for foreign keys set'''
         try:
             # Create temporal name
