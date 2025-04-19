@@ -113,7 +113,8 @@ class SQLite_Handler:
             # Remove old table
             self.cursor.execute(f"DROP TABLE {temp_name};")
             self.conn.commit()
-            print(f"{table_name} migrated successfully.") if verbose == True else None
+            print(f"Foreign key set as *{foreign_key}*") if isinstance(foreign_key, str) and verbose else None
+            print(f"Table *{table_name}* migrated successfully.") if verbose else None
         except Exception as e:
             raise Exception(f"Error while migrating table: {str(e)}")
 

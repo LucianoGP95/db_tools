@@ -12,7 +12,7 @@ dbh.store("data.csv")
 dbh.consult_tables()
 #Show info and the contents of specific tables
 dbh.examine_table(["data"])
-dbh.migrate_table("data")
+dbh.migrate_table("data", foreign_key="name")
 """#Rename a table
 dbh.rename_table("test1", "renamed_table")
 #Get a table into a dataframe
