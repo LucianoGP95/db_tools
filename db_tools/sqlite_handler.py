@@ -1,7 +1,5 @@
 #V22.0 17/04/2025
 import os, json, time, re, sys, shutil, sqlite3
-import pandas as pd
-#Secondary requirements: pip install openpyxl
 ################################################################################
 
 class SQLite_Handler:

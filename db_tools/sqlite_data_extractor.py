@@ -2,6 +2,7 @@ import os, sys, re
 import pandas as pd
 from urllib.parse import urlparse
 from sqlite_handler import SQLite_Handler
+#Secondary requirements: pip install openpyxl
 
 class SQLite_Data_Extractor(SQLite_Handler):
     '''Extracts structured data from different sources and turns it into a table in a database
